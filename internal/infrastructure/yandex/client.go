@@ -1,0 +1,176 @@
+package yandex
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+)
+
+const baseURL = "https://api.rasp.yandex.net/v3.0"
+
+// Client — публичный тип
+type Client struct {
+	apiKey string
+	http   *http.Client
+}
+
+func New(apiKey string) *Client {
+	return &Client{
+		apiKey: apiKey,
+		http:   &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+// запрос с общей обработкой ошибок
+func (c *Client) do(ctx context.Context, endpoint string, q url.Values, out any) error {
+	q.Set("apikey", c.apiKey)
+	u := fmt.Sprintf("%s/%s?%s", baseURL, endpoint, q.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return err
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		msg, _ := io.ReadAll(io.LimitReader(res.Body, 4<<10))
+		return fmt.Errorf("yandex api %s: %s", res.Status, msg)
+	}
+	return json.NewDecoder(res.Body).Decode(out)
+}
+func (c *Client) StationsList(ctx context.Context, transport []string) ([]Station, error) {
+	q := url.Values{"lang": {"ru_RU"}}
+	if len(transport) > 0 {
+		q.Set("transport_types", strings.Join(transport, ","))
+	}
+
+	var raw struct {
+		Countries []struct {
+			Regions []struct {
+				Settlements []struct {
+					Code     string    `json:"code"`
+					Stations []Station `json:"stations"`
+				} `json:"settlements"`
+			} `json:"regions"`
+		} `json:"countries"`
+	}
+	if err := c.do(ctx, "stations_list/", q, &raw); err != nil {
+		return nil, err
+	}
+
+	var out []Station
+	for _, ctry := range raw.Countries {
+		for _, reg := range ctry.Regions {
+			for _, set := range reg.Settlements {
+				for _, st := range set.Stations {
+					if st.Transport == "suburban" {
+						st.SettlementCode = set.Code
+						out = append(out, st)
+					}
+				}
+			}
+		}
+	}
+	return out, nil
+}
+
+/* ───── DTO ───── */
+
+type (
+	Station struct {
+		Code           string  `json:"code"`
+		Type           string  `json:"station_type"`
+		Title          string  `json:"title"`
+		Transport      string  `json:"transport_type"`
+		Latitude       float64 `json:"latitude"`
+		Longitude      float64 `json:"longitude"`
+		SettlementCode string  `json:"-"`
+	}
+	Thread struct {
+		UID       string `json:"uid"`
+		Title     string `json:"title"`
+		Number    string `json:"number"`
+		Transport string `json:"transport_type"`
+	}
+	Segment struct {
+		Thread    Thread  `json:"thread"`
+		Departure string  `json:"departure"`
+		Arrival   string  `json:"arrival"`
+		Duration  int     `json:"duration"`
+		From      Station `json:"from"`
+		To        Station `json:"to"`
+	}
+	SearchResponse struct {
+		Pagination struct {
+			Total  int `json:"total"`
+			Limit  int `json:"limit"`
+			Offset int `json:"offset"`
+		} `json:"pagination"`
+		Segments []Segment `json:"segments"`
+	}
+	ScheduleResponse struct {
+		Date       string `json:"date"`
+		Pagination struct {
+			Total  int `json:"total"`
+			Limit  int `json:"limit"`
+			Offset int `json:"offset"`
+		} `json:"pagination"`
+		Station  Station   `json:"station"`
+		Schedule []Segment `json:"schedule"`
+	}
+)
+
+/* ───── endpoints ───── */
+
+// /search/
+func (c *Client) Search(ctx context.Context, from, to, date string,
+	transport []string, transfers bool, offset, limit int) (*SearchResponse, error) {
+
+	q := url.Values{
+		"from":   {from},
+		"to":     {to},
+		"date":   {date},
+		"offset": {strconv.Itoa(offset)},
+		"limit":  {strconv.Itoa(limit)},
+	}
+	if len(transport) > 0 {
+		q.Set("transport_types", strings.Join(transport, ","))
+	}
+	if transfers {
+		q.Set("transfers", "true")
+	}
+
+	var resp SearchResponse
+	return &resp, c.do(ctx, "search/", q, &resp)
+}
+
+// /schedule/
+func (c *Client) ScheduleOnStation(ctx context.Context, station, date, event string,
+	transport []string, offset, limit int) (*ScheduleResponse, error) {
+
+	q := url.Values{
+		"station": {station},
+		"date":    {date},
+		"offset":  {strconv.Itoa(offset)},
+		"limit":   {strconv.Itoa(limit)},
+	}
+	if event != "" {
+		q.Set("event", event)
+	}
+	if len(transport) > 0 {
+		q.Set("transport_types", strings.Join(transport, ","))
+	}
+
+	var resp ScheduleResponse
+	return &resp, c.do(ctx, "schedule/", q, &resp)
+}

@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: train
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+    ports: ["5432:5432"]
+    volumes: [db-data:/var/lib/postgresql/data]
+
+  backend:
+    build: .
+    env_file: .env
+    depends_on: [db]
+    ports: ["8080:8080"]
+
+volumes:
+  db-data:
