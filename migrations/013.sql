@@ -9,20 +9,16 @@ CREATE TABLE IF NOT EXISTS train_runs (
 CREATE TABLE IF NOT EXISTS train_statuses (
                                               id            BIGSERIAL PRIMARY KEY,
                                               train_run_id  BIGINT      NOT NULL REFERENCES train_runs(id) ON DELETE CASCADE,
-    status        VARCHAR(50) NOT NULL,
-    received_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    raw           JSONB,
+    status        JSONB       NOT NULL,
+    fetched_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (train_run_id)
     );
 
-CREATE TYPE occupancy_level AS ENUM ('low', 'medium', 'high');
-
 CREATE TABLE IF NOT EXISTS occupancy_predictions (
-                                                     id             BIGSERIAL PRIMARY KEY,
-                                                     train_run_id   BIGINT            NOT NULL REFERENCES train_runs(id) ON DELETE CASCADE,
-    car_number     SMALLINT          NOT NULL,
-    level          occupancy_level   NOT NULL,
-    predicted_at   TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
+                                                     id              BIGSERIAL PRIMARY KEY,
+                                                     train_run_id    BIGINT      NOT NULL REFERENCES train_runs(id) ON DELETE CASCADE,
+    car_number      INT         NOT NULL,
+    level           TEXT        NOT NULL CHECK (level IN ('low', 'medium', 'high')),
+    predicted_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (train_run_id, car_number)
     );

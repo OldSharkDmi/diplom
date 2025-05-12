@@ -1,10 +1,15 @@
 package model
 
+import (
+	"encoding/json"
+	"time"
+)
+
 type TrainStatus struct {
-	UID        string `json:"uid"`
-	Departure  string `json:"departure,omitempty"`
-	Arrival    string `json:"arrival,omitempty"`
-	DelayMin   int    `json:"delay_min,omitempty"`
-	Occupancy  string `json:"occupancy,omitempty"` // low / medium / high
-	UpdatedISO string `json:"updated_at"`
+	ID         int64           `json:"id"`
+	TrainRunID int64           `json:"train_run_id"`
+	Status     string          `json:"status"`
+	ReceivedAt time.Time       `json:"received_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
+	Raw        json.RawMessage `json:"raw,omitempty"`
 }
