@@ -26,6 +26,7 @@ func New(apiKey string) *Client {
 		http:   &http.Client{Timeout: 10 * time.Second},
 	}
 }
+func (c *Client) SetTimeout(d time.Duration) { c.http.Timeout = d }
 
 // запрос с общей обработкой ошибок
 func (c *Client) do(ctx context.Context, endpoint string, q url.Values, out any) error {
@@ -73,11 +74,14 @@ func (c *Client) StationsList(ctx context.Context, transport []string) ([]Statio
 		for _, reg := range ctry.Regions {
 			for _, set := range reg.Settlements {
 				for _, st := range set.Stations {
-					if st.Transport == "suburban" {
-						st.SettlementCode = set.Code
-						out = append(out, st)
+					st.Code = st.Codes.Yandex
+					if st.Code == "" { // пропускаем безкодовые платформы
+						continue
 					}
+					st.SettlementCode = set.Code
+					out = append(out, st) // ← просто добавляем
 				}
+
 			}
 		}
 	}
@@ -88,13 +92,17 @@ func (c *Client) StationsList(ctx context.Context, transport []string) ([]Statio
 
 type (
 	Station struct {
-		Code           string  `json:"code"`
-		Type           string  `json:"station_type"`
-		Title          string  `json:"title"`
-		Transport      string  `json:"transport_type"`
-		Latitude       float64 `json:"latitude"`
-		Longitude      float64 `json:"longitude"`
-		SettlementCode string  `json:"-"`
+		Codes struct {
+			Yandex string `json:"yandex_code"`
+		} `json:"codes"`
+
+		Code           string `json:"-"` // ← заполняем вручную
+		Type           string `json:"station_type"`
+		Title          string `json:"title"`
+		Transport      string `json:"transport_type"`
+		Latitude       Num    `json:"latitude"`
+		Longitude      Num    `json:"longitude"`
+		SettlementCode string `json:"-"`
 	}
 	Thread struct {
 		UID       string `json:"uid"`
