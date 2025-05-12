@@ -18,7 +18,9 @@ type Train struct {
 func NewTrain(r repository.TrainRepository, ya *yandex.Client, ttl time.Duration) *Train {
 	return &Train{r, ya, ttl}
 }
-
+func (uc *Train) Occupancy(ctx context.Context, uid string) (*model.Occupancy, error) {
+	return uc.repo.Occupancy(ctx, uid)
+}
 func (uc *Train) Status(ctx context.Context, uid string) (*model.TrainStatus, error) {
 	// from DB
 	if st, _ := uc.repo.Get(ctx, uid); st != nil {

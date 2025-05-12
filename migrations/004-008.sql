@@ -35,5 +35,3 @@ CREATE TABLE IF NOT EXISTS events (
     payload      jsonb
     );
 
--- 008_extension_pgnotify.sql   --------------------------------
-CREATE EXTENSION IF NOT EXISTS pg_notify;  -- для push через LISTEN/NOTIFY

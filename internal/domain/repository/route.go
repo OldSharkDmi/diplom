@@ -8,6 +8,7 @@ import (
 )
 
 type RouteRepository interface {
-	GetCache(ctx context.Context, from, to string, d time.Time) (*model.Route, error)
-	SaveCache(ctx context.Context, from, to string, d time.Time, r *model.Route) error
+	SaveCache(ctx context.Context, from, to string, date time.Time, r *model.Route) error
+	GetCache(ctx context.Context, from, to string, date time.Time) (*model.Route, error)
+	ByID(ctx context.Context, id int64) (*model.Route, error)
 }

@@ -58,7 +58,9 @@ func (uc *RouteUsecase) Find(ctx context.Context, from, to string, date time.Tim
 	_ = uc.repo.SaveCache(ctx, from, to, date, best)
 	return best, nil
 }
-
+func (uc *RouteUsecase) ByID(ctx context.Context, id int64) (*model.Route, error) {
+	return uc.repo.ByID(ctx, id)
+}
 func convertDirect(s *yandex.SearchResponse) *model.Route {
 	seg := s.Segments[0]
 	return &model.Route{

@@ -11,7 +11,7 @@ func NewHealthHandler(r fiber.Router, db *pgxpool.Pool) {
 		if err := db.Ping(c.Context()); err != nil {
 			return c.Status(503).JSON(fiber.Map{"db": "down"})
 		}
-		if cache.Stat().Items == 0 { // кэш недоступен/пустой
+		if cache.Stat().Items == 0 { // исправил имена
 			return c.Status(503).JSON(fiber.Map{"cache": "down"})
 		}
 		return c.JSON(fiber.Map{"status": "ok"})

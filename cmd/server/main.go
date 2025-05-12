@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"github.com/gofiber/fiber/v2"
 	"log"
 	"os"
 	"time"
+	"train-backend/internal/delivery/ws"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/joho/godotenv"
@@ -49,6 +51,8 @@ func main() {
 	handler.NewScheduleHandler(api, schUC)
 	handler.NewStationHandler(api, stUC)
 	handler.NewRouteHandler(api, routeUC)
+	api.Get("/trains/:uid/occupancy", handler.TrainOccupancy(trainUC))
+	app.Get("/ws/push", ws.Handler(trainRepo))
 	handler.NewSubHandler(api, subUC)
 	handler.NewHealthHandler(api, pool)
 	handler.NewTrainHandler(api, trainUC)

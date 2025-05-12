@@ -51,3 +51,9 @@ func (r *trainRepo) WithSubs(ctx context.Context) ([]string, error) {
 	}
 	return uids, rows.Err()
 }
+
+func (r *trainRepo) Occupancy(ctx context.Context, uid string) (*model.Occupancy, error) {
+	const q = `SELECT delay_min, occupancy, updated_at FROM v_train_occupancy WHERE uid=$1`
+	var o model.Occupancy
+	return &o, r.pool.QueryRow(ctx, q, uid).Scan(&o.DelayMin, &o.Level, &o.UpdatedAt)
+}

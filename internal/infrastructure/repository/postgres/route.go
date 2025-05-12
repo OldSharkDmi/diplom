@@ -37,3 +37,12 @@ func (r *routeRepo) SaveCache(ctx context.Context, from, to string, date time.Ti
 		from, to, date, buf)
 	return err
 }
+func (r *routeRepo) ByID(ctx context.Context, id int64) (*model.Route, error) {
+	var raw []byte
+	if err := r.pool.QueryRow(ctx,
+		`SELECT data FROM routes WHERE id=$1`, id).Scan(&raw); err != nil {
+		return nil, err
+	}
+	var rt model.Route
+	return &rt, json.Unmarshal(raw, &rt)
+}

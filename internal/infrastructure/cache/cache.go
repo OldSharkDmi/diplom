@@ -17,4 +17,7 @@ func ItemCount() int { return c.ItemCount() }
 // маленькая структурка для /health
 type Stats struct{ Items int }
 
-func Stat() Stats { return Stats{Items: ItemCount()} }
+func StatHealth() Stats { return Stats{Items: ItemCount()} }
+func Stat() Stats {
+	return Stats{Items: len(c.Items())}
+}
