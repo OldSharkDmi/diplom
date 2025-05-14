@@ -1,9 +1,16 @@
--- migrations/014_occupancy.sql
 CREATE OR REPLACE VIEW v_train_occupancy AS
-SELECT t.uid,
-       s.delay_min,
-       o.occupancy,
-       s.updated_at
-FROM   train_statuses s
-           JOIN   trains t          ON t.train_run_id = s.train_run_id
-           LEFT   JOIN occupancy_predictions o USING (train_run_id);
+SELECT
+    t.uid,
+    (s.status->>'delay_min')::int   AS delay_min,
+        COALESCE(o.level, 'unknown')     AS occupancy,
+    s.fetched_at                    AS updated_at  -- а не s.updated_at!
+FROM train_statuses s
+         JOIN train_runs tr ON tr.id = s.train_run_id
+         JOIN trains t      ON t.id  = tr.train_id
+         LEFT JOIN (
+    SELECT train_run_id, MAX(predicted_at) AS last_pred
+    FROM occupancy_predictions
+    GROUP BY train_run_id
+) op_last ON op_last.train_run_id = tr.id
+         LEFT JOIN occupancy_predictions o
+                   ON o.train_run_id = tr.id AND o.predicted_at = op_last.last_pred;

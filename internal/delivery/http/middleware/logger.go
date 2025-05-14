@@ -1,14 +1,18 @@
 package middleware
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"log"
+	"time"
 )
 
 func Logger() fiber.Handler {
-	return func(c fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		start := time.Now()
 		err := c.Next()
-		log.Printf("%s %s %d", c.Method(), c.Path(), c.Response().StatusCode())
+		log.Printf("%s %s %d %v",
+			c.Method(), c.Path(), c.Response().StatusCode(),
+			time.Since(start))
 		return err
 	}
 }

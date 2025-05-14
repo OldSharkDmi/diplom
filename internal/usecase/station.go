@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"time"
-
 	"train-backend/internal/domain/model"
 	"train-backend/internal/domain/repository"
 )
@@ -20,5 +19,18 @@ func NewStation(r repository.StationRepository, t time.Duration) *Station {
 func (uc *Station) Search(ctx context.Context, q string, limit int) ([]model.Station, error) {
 	ctx, cancel := context.WithTimeout(ctx, uc.contextTimeout)
 	defer cancel()
-	return uc.repo.Search(ctx, q, limit)
+
+	stations, err := uc.repo.Search(ctx, q, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	// Фильтрация только по пригородным поездам
+	filtered := make([]model.Station, 0, len(stations))
+	for _, s := range stations {
+		if s.Transport == "train" {
+			filtered = append(filtered, s)
+		}
+	}
+	return filtered, nil
 }

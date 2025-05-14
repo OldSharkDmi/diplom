@@ -3,7 +3,7 @@ package handler
 import (
 	"strconv"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"train-backend/internal/usecase"
 )
 
@@ -15,12 +15,12 @@ func NewSubHandler(r fiber.Router, uc *usecase.SubscriptionUsecase) {
 	r.Delete("/subscriptions/:id", h.Delete)
 }
 
-func (h *SubHandler) Create(c fiber.Ctx) error {
+func (h *SubHandler) Create(c *fiber.Ctx) error {
 	var req struct {
 		DeviceToken string `json:"device_token"`
 		TrainUID    string `json:"train_uid"`
 	}
-	if err := c.Bind().Body(&req); err != nil {
+	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
 	}
 	s, err := h.uc.Subscribe(c.Context(), req.DeviceToken, req.TrainUID)
@@ -30,7 +30,7 @@ func (h *SubHandler) Create(c fiber.Ctx) error {
 	return c.Status(201).JSON(s)
 }
 
-func (h *SubHandler) Delete(c fiber.Ctx) error {
+func (h *SubHandler) Delete(c *fiber.Ctx) error {
 	id, _ := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err := h.uc.Unsubscribe(c.Context(), id); err != nil {
 		return fiber.NewError(500, err.Error())

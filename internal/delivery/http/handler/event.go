@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"train-backend/internal/domain/model"
 	"train-backend/internal/usecase"
 )
@@ -13,13 +13,14 @@ func NewEventHandler(r fiber.Router, uc *usecase.EventUsecase) {
 	r.Post("/events", h.Store)
 }
 
-func (h *EventHandler) Store(c fiber.Ctx) error {
+func (h *EventHandler) Store(c *fiber.Ctx) error {
 	var req struct {
 		DeviceID string      `json:"device_id,omitempty"`
 		Type     string      `json:"event_type"`
 		Payload  interface{} `json:"payload"`
 	}
-	if err := c.Bind().Body(&req); err != nil {
+	// в Fiber v2 — BodyParser
+	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
 	}
 	ev := &model.Event{
@@ -27,9 +28,9 @@ func (h *EventHandler) Store(c fiber.Ctx) error {
 		Type:     req.Type,
 		Payload:  req.Payload,
 	}
-	ev, err := h.uc.Store(c.Context(), ev)
+	saved, err := h.uc.Store(c.Context(), ev)
 	if err != nil {
-		return fiber.NewError(500, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
-	return c.Status(201).JSON(ev)
+	return c.Status(fiber.StatusCreated).JSON(saved)
 }

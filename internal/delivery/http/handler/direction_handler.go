@@ -3,7 +3,7 @@ package handler
 import (
 	"strconv"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"train-backend/internal/usecase"
 )
 
@@ -17,7 +17,7 @@ func NewDirectionHandler(r fiber.Router, uc *usecase.DirectionUsecase) {
 }
 
 // List godoc – соответствует спецификации paths./directions.get :contentReference[oaicite:4]{index=4}&#8203;:contentReference[oaicite:5]{index=5}
-func (h *DirectionHandler) List(c fiber.Ctx) error {
+func (h *DirectionHandler) List(c *fiber.Ctx) error {
 	off, _ := strconv.Atoi(c.Query("offset", "0"))
 	lim, _ := strconv.Atoi(c.Query("limit", "100"))
 

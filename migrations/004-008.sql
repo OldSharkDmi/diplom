@@ -1,14 +1,15 @@
 -- 004_routes.sql  ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS routes (
-                                      id           bigserial PRIMARY KEY,
-                                      from_code    text NOT NULL,
-                                      to_code      text NOT NULL,
-                                      date         date NOT NULL,
-                                      json         jsonb NOT NULL,
-                                      cached_at    timestamptz DEFAULT now()
+                                      id        bigserial PRIMARY KEY,
+                                      from_code text NOT NULL,
+                                      to_code   text NOT NULL,
+                                      date      date NOT NULL,
+                                      json      jsonb NOT NULL,
+                                      cached_at timestamptz DEFAULT now(),
+    UNIQUE (from_code, to_code, date)            -- ← вот это
     );
-CREATE INDEX IF NOT EXISTS routes_key_idx
-    ON routes (from_code, to_code, date);
+
+DROP INDEX IF EXISTS routes_key_idx;
 
 -- 005_trains.sql  ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS trains (

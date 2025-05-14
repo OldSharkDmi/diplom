@@ -21,7 +21,7 @@ type TrainStatus struct {
 	/* служебные поля */
 	ID         int64           `json:"id,omitempty"`
 	TrainRunID int64           `json:"train_run_id,omitempty"`
-	ReceivedAt time.Time       `json:"received_at,omitempty"`
-	UpdatedAt  time.Time       `json:"updated_at,omitempty"`
+	ReceivedAt time.Time       `json:"received_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
 	Raw        json.RawMessage `json:"raw,omitempty"`
 }

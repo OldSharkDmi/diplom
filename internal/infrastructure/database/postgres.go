@@ -9,8 +9,7 @@ import (
 )
 
 func NewPool(ctx context.Context) (*pgxpool.Pool, error) {
-	dsn := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&connect_timeout=5",
 		os.Getenv("PGUSER"), os.Getenv("PGPASS"),
 		os.Getenv("PGHOST"), os.Getenv("PGPORT"), os.Getenv("PGDB"),
 	)

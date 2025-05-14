@@ -4,12 +4,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"train-backend/internal/usecase"
 )
 
-// helper ────────────────
-func queryBool(c fiber.Ctx, key string, def bool) bool {
+// queryBool парсит булевый параметр с дефолтным значением.
+func queryBool(c *fiber.Ctx, key string, def bool) bool {
 	val := c.Query(key, "")
 	if val == "" {
 		return def
@@ -18,21 +18,30 @@ func queryBool(c fiber.Ctx, key string, def bool) bool {
 	return b
 }
 
-type ScheduleHandler struct{ uc *usecase.ScheduleUsecase }
+type ScheduleHandler struct {
+	uc *usecase.ScheduleUsecase
+}
 
+// NewScheduleHandler регистрирует два роутинга:
+//
+//	GET /api/v1/search        — поиск «точка→точка»
+//	GET /api/v1/station/:code — расписание на станции
 func NewScheduleHandler(r fiber.Router, uc *usecase.ScheduleUsecase) {
 	h := &ScheduleHandler{uc}
 	r.Get("/search", h.PointToPoint)
 	r.Get("/station/:code", h.OnStation)
 }
 
-func (h *ScheduleHandler) PointToPoint(c fiber.Ctx) error {
+// PointToPoint — прямой поиск маршрута
+func (h *ScheduleHandler) PointToPoint(c *fiber.Ctx) error {
 	off, _ := strconv.Atoi(c.Query("offset", "0"))
 	lim, _ := strconv.Atoi(c.Query("limit", "100"))
 
 	resp, err := h.uc.Search(
 		c.Context(),
-		c.Query("from"), c.Query("to"), c.Query("date"),
+		c.Query("from"),
+		c.Query("to"),
+		c.Query("date"),
 		strings.Split(c.Query("transport_types", "suburban"), ","),
 		queryBool(c, "transfers", false),
 		off, lim,
@@ -43,13 +52,16 @@ func (h *ScheduleHandler) PointToPoint(c fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-func (h *ScheduleHandler) OnStation(c fiber.Ctx) error {
+// OnStation — расписание на одной станции
+func (h *ScheduleHandler) OnStation(c *fiber.Ctx) error {
 	off, _ := strconv.Atoi(c.Query("offset", "0"))
 	lim, _ := strconv.Atoi(c.Query("limit", "100"))
 
 	resp, err := h.uc.Station(
 		c.Context(),
-		c.Params("code"), c.Query("date"), c.Query("event"),
+		c.Params("code"),
+		c.Query("date"),
+		c.Query("event"),
 		strings.Split(c.Query("transport_types", "suburban"), ","),
 		off, lim,
 	)

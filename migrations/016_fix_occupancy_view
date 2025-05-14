@@ -1,0 +1,19 @@
+DROP VIEW IF EXISTS v_train_occupancy;
+
+CREATE VIEW v_train_occupancy AS
+SELECT
+    t.uid,
+    (s.status->>'delay_min')::int   AS delay_min,
+        COALESCE(o.level, 'unknown')    AS occupancy,
+    s.fetched_at                    AS updated_at
+FROM train_statuses s
+         JOIN train_runs tr  ON tr.id = s.train_run_id
+         JOIN trains t       ON t.id  = tr.train_id
+         LEFT JOIN (
+    SELECT train_run_id, MAX(predicted_at) AS last_pred
+    FROM occupancy_predictions
+    GROUP BY train_run_id
+) op_last ON op_last.train_run_id = tr.id
+         LEFT JOIN occupancy_predictions o
+                   ON o.train_run_id = tr.id
+                       AND o.predicted_at = op_last.last_pred;

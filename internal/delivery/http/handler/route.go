@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
 	"train-backend/internal/usecase"
 )
 
@@ -17,7 +16,7 @@ func NewRouteHandler(r fiber.Router, uc *usecase.RouteUsecase) {
 	r.Get("/routes/:id", h.Get)
 }
 
-func (h *RouteHandler) Find(c fiber.Ctx) error {
+func (h *RouteHandler) Find(c *fiber.Ctx) error {
 	from := c.Query("from")
 	to := c.Query("to")
 	date, _ := time.Parse("2006-01-02", c.Query("date"))
@@ -27,7 +26,7 @@ func (h *RouteHandler) Find(c fiber.Ctx) error {
 	}
 	return c.JSON(rt)
 }
-func (h *RouteHandler) Get(c fiber.Ctx) error {
+func (h *RouteHandler) Get(c *fiber.Ctx) error {
 	id, _ := strconv.ParseInt(c.Params("id"), 10, 64)
 	rt, err := h.uc.ByID(c.Context(), id) // используем тот же use-case
 	if err != nil {

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"strconv"
 
 	"train-backend/internal/usecase"
@@ -14,7 +14,7 @@ func NewStationHandler(r fiber.Router, uc *usecase.Station) {
 	r.Get("/stations", h.Search)
 }
 
-func (h *StationHandler) Search(c fiber.Ctx) error {
+func (h *StationHandler) Search(c *fiber.Ctx) error { // Изменено на *fiber.Ctx
 	q := c.Query("search", "")
 	lim, _ := strconv.Atoi(c.Query("limit", "20"))
 	data, err := h.uc.Search(c.Context(), q, lim)

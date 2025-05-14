@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"math"
 	"time"
 
 	"train-backend/internal/domain/model"
@@ -20,27 +22,39 @@ func NewRouteUsecase(r repository.RouteRepository, ya *yandex.Client, t time.Dur
 }
 
 func (uc *RouteUsecase) Find(ctx context.Context, from, to string, date time.Time) (*model.Route, error) {
-	// 1. cache
+	// 1. кэш
 	if rt, _ := uc.repo.GetCache(ctx, from, to, date); rt != nil {
 		return rt, nil
 	}
 
-	// 2. brute DFS 1-пересадка (пример)
-	types := []string{"suburban"}
-	srch, err := uc.ya.Search(ctx, from, to, date.Format("2006-01-02"), types, false, 0, 50)
+	trySearch := func(limit int, types []string) (*yandex.SearchResponse, error) {
+		// отдельный CONTEXT с таймаутом
+		cctx, cancel := context.WithTimeout(ctx, uc.timeout)
+		defer cancel()
+		return uc.ya.Search(cctx, from, to, date.Format("2006-01-02"), types, false, 0, limit)
+	}
+
+	/* ---------- прямой поиск ---------- */
+	srch, err := trySearch(10, []string{"suburban", "train"})
 	if err == nil && len(srch.Segments) > 0 {
 		rt := convertDirect(srch)
 		_ = uc.repo.SaveCache(ctx, from, to, date, rt)
 		return rt, nil
 	}
+	// Если Яндекс вернул 5xx — отдадим 502 клиенту
+	if err != nil {
+		return nil, errors.New("yandex upstream error: " + err.Error())
+	}
 
-	// 3. пересадка: перебираем станции-кандидаты
-	sr1, _ := uc.ya.Search(ctx, from, "", date.Format("2006-01-02"), types, false, 0, 100)
-	best := &model.Route{Duration: 1<<31 - 1}
+	/* ---------- вариант с одной пересадкой ---------- */
+	sr1, _ := trySearch(100, []string{"suburban", "train"})
+	best := &model.Route{Duration: math.MaxFloat64}
+
 	for _, seg1 := range sr1.Segments {
 		mid := seg1.To.Code
-		sr2, err := uc.ya.Search(ctx, mid, to, date.Format("2006-01-02"), types, false, 0, 50)
-		if err != nil || len(sr2.Segments) == 0 {
+		sr2, _ := uc.ya.Search(ctx, mid, to, date.Format("2006-01-02"),
+			[]string{"suburban", "train"}, false, 0, 50)
+		if len(sr2.Segments) == 0 {
 			continue
 		}
 		seg2 := sr2.Segments[0]
@@ -58,15 +72,16 @@ func (uc *RouteUsecase) Find(ctx context.Context, from, to string, date time.Tim
 	_ = uc.repo.SaveCache(ctx, from, to, date, best)
 	return best, nil
 }
+
 func (uc *RouteUsecase) ByID(ctx context.Context, id int64) (*model.Route, error) {
 	return uc.repo.ByID(ctx, id)
 }
+
 func convertDirect(s *yandex.SearchResponse) *model.Route {
 	seg := s.Segments[0]
 	return &model.Route{
 		Segments: []model.RouteSegment{
-			{FromCode: seg.From.Code, ToCode: seg.To.Code, Dep: seg.Departure,
-				Arr: seg.Arrival, TrainUID: seg.Thread.UID},
+			{FromCode: seg.From.Code, ToCode: seg.To.Code, Dep: seg.Departure, Arr: seg.Arrival, TrainUID: seg.Thread.UID},
 		},
 		Duration: seg.Duration,
 	}

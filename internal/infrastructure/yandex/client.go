@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,6 +14,27 @@ import (
 )
 
 const baseURL = "https://api.rasp.yandex.net/v3.0"
+
+// DTO для /thread/
+type ThreadResponse struct {
+	Departure string `json:"departure"`
+	Arrival   string `json:"arrival"`
+	Stops     []Stop `json:"stops"`
+}
+type Stop struct {
+	Station Station `json:"station"`
+	Dep     string  `json:"departure"`
+	Arr     string  `json:"arrival"`
+}
+
+func (c *Client) Thread(ctx context.Context, uid, date string) (*ThreadResponse, error) {
+	q := url.Values{
+		"uid":  {uid},
+		"date": {date},
+	}
+	var out ThreadResponse
+	return &out, c.do(ctx, "thread/", q, &out)
+}
 
 // Client — публичный тип
 type Client struct {
@@ -37,6 +59,7 @@ func (c *Client) do(ctx context.Context, endpoint string, q url.Values, out any)
 	if err != nil {
 		return err
 	}
+	log.Printf("[Yandex] %s %s", req.Method, req.URL.String())
 	res, err := c.http.Do(req)
 	if err != nil {
 		return err
@@ -96,7 +119,8 @@ type (
 			Yandex string `json:"yandex_code"`
 		} `json:"codes"`
 
-		Code           string `json:"-"` // ← заполняем вручную
+		// теперь из JSON будет правильно браться поле "code"
+		Code           string `json:"code"`
 		Type           string `json:"station_type"`
 		Title          string `json:"title"`
 		Transport      string `json:"transport_type"`
@@ -110,11 +134,12 @@ type (
 		Number    string `json:"number"`
 		Transport string `json:"transport_type"`
 	}
+
 	Segment struct {
 		Thread    Thread  `json:"thread"`
 		Departure string  `json:"departure"`
 		Arrival   string  `json:"arrival"`
-		Duration  int     `json:"duration"`
+		Duration  float64 `json:"duration"`
 		From      Station `json:"from"`
 		To        Station `json:"to"`
 	}

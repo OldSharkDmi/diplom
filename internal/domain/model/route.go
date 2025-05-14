@@ -10,5 +10,5 @@ type RouteSegment struct {
 
 type Route struct {
 	Segments []RouteSegment `json:"segments"`
-	Duration int            `json:"duration"`
+	Duration float64        `json:"duration"`
 }

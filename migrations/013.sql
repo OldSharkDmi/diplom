@@ -1,4 +1,6 @@
-ALTER TABLE trains ADD COLUMN IF NOT EXISTS id BIGSERIAL PRIMARY KEY;
+ALTER TABLE trains ADD COLUMN IF NOT EXISTS id BIGSERIAL;
+CREATE UNIQUE INDEX IF NOT EXISTS trains_id_idx ON trains(id);
+
 CREATE TABLE IF NOT EXISTS train_runs (
                                           id            BIGSERIAL PRIMARY KEY,
                                           train_id      BIGINT      NOT NULL REFERENCES trains(id) ON DELETE CASCADE,
